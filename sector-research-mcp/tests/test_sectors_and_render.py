@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from sector_research_mcp import skeleton
+from sector_research_mcp.docx_render import render_markdown_to_docx
 from sector_research_mcp.methodology import build_instructions
 from sector_research_mcp.pdf import render_markdown_to_pdf
 from sector_research_mcp.sectors import SECTORS, get_sector, list_sector_keys
@@ -84,3 +85,29 @@ def test_render_pdf(tmp_path: Path):
     assert out.exists()
     assert out.stat().st_size > 1000
     assert info["engine"] in {"xhtml2pdf", "fpdf2"}
+
+
+def test_render_docx(tmp_path: Path):
+    s = get_sector("ai-infrastructure")
+    md = skeleton.build_skeleton(s)
+    out = tmp_path / "memo.docx"
+    info = render_markdown_to_docx(md, out)
+    assert out.exists()
+    assert out.stat().st_size > 1000
+    assert info["engine"] in {"htmldocx", "python-docx"}
+    # the .docx must contain the section tables
+    from docx import Document
+
+    doc = Document(str(out))
+    assert len(doc.tables) >= 1
+
+
+def test_render_report_defaults_to_docx(tmp_path: Path, monkeypatch):
+    import sector_research_mcp.config as cfg
+    from sector_research_mcp.server import render_report
+
+    monkeypatch.setattr(cfg, "OUTPUT_DIR", tmp_path)
+    res = render_report("stablecoin", "## 1. Funding\n\nNo material rounds.\n")
+    assert set(res["outputs"]) == {"markdown", "docx"}
+    assert Path(res["outputs"]["docx"]["path"]).exists()
+    assert res["title"] == "Standardized Sector Market Map Stablecoins & Payment Rails"

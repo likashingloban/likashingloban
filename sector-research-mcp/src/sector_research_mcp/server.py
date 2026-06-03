@@ -19,6 +19,7 @@ from mcp.server.fastmcp import FastMCP
 
 from . import config
 from . import rubrics as _rub
+from .docx_render import render_markdown_to_docx
 from .methodology import build_instructions
 from .pdf import render_markdown_to_pdf
 from .rubrics import ALL_RUBRICS, MarketOpportunity, ScoreCard, average
@@ -42,7 +43,7 @@ mcp = FastMCP(
         "get_report_skeleton(sector); gather data with web_search/extract_url and "
         "the SEC/Messari/Amberdata/DefiLlama/CoinGecko tools; compute rubric "
         "scores with compute_scores; finish by calling render_report to emit the "
-        "Markdown + PDF deliverables. Never estimate beyond disclosed data."
+        "Word (.docx) + Markdown deliverables. Never estimate beyond disclosed data."
     ),
 )
 
@@ -304,11 +305,17 @@ async def coingecko_markets(ids: list[str]) -> dict[str, Any]:
 # --------------------------------------------------------------------------
 
 @mcp.tool()
-def render_report(sector: str, markdown_body: str) -> dict[str, Any]:
-    """Write the completed memo to Markdown + PDF and return both paths.
+def render_report(
+    sector: str,
+    markdown_body: str,
+    formats: list[str] | None = None,
+) -> dict[str, Any]:
+    """Write the completed memo and return the paths produced.
 
+    ``formats`` selects deliverables from {"markdown", "docx", "pdf"} and
+    defaults to ["markdown", "docx"] — Word is the primary document output.
     The title line is enforced to exactly
-    "Standardized Sector Market Map <short_name>". If ``markdown_body`` does not
+    "Standardized Sector Market Map <short_name>"; if ``markdown_body`` does not
     already begin with that H1, it is prepended.
     """
     s = get_sector(sector)
@@ -317,23 +324,42 @@ def render_report(sector: str, markdown_body: str) -> dict[str, Any]:
     if not body.startswith(f"# {title}"):
         body = f"# {title}\n\n{body}"
 
+    wanted = [f.lower() for f in (formats or ["markdown", "docx"])]
+    unknown = [f for f in wanted if f not in {"markdown", "docx", "pdf"}]
+    if unknown:
+        return {"ok": False, "error": f"Unknown formats: {unknown}"}
+
     config.OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     base = report_basename(s)
-    md_path = config.OUTPUT_DIR / f"{base}.md"
-    pdf_path = config.OUTPUT_DIR / f"{base}.pdf"
-
-    md_path.write_text(body, encoding="utf-8")
-    pdf_info = render_markdown_to_pdf(body, pdf_path)
-
-    return {
+    result: dict[str, Any] = {
         "sector": s.key,
         "title": title,
-        "markdown_path": str(md_path),
-        "pdf_path": pdf_info["path"],
-        "pdf_engine": pdf_info["engine"],
-        "pdf_note": pdf_info.get("note"),
         "bytes_markdown": len(body.encode("utf-8")),
+        "outputs": {},
     }
+
+    if "markdown" in wanted:
+        md_path = config.OUTPUT_DIR / f"{base}.md"
+        md_path.write_text(body, encoding="utf-8")
+        result["outputs"]["markdown"] = {"path": str(md_path)}
+
+    if "docx" in wanted:
+        docx_info = render_markdown_to_docx(body, config.OUTPUT_DIR / f"{base}.docx")
+        result["outputs"]["docx"] = {
+            "path": docx_info["path"],
+            "engine": docx_info["engine"],
+            "note": docx_info.get("note"),
+        }
+
+    if "pdf" in wanted:
+        pdf_info = render_markdown_to_pdf(body, config.OUTPUT_DIR / f"{base}.pdf")
+        result["outputs"]["pdf"] = {
+            "path": pdf_info["path"],
+            "engine": pdf_info["engine"],
+            "note": pdf_info.get("note"),
+        }
+
+    return result
 
 
 @mcp.tool()
@@ -367,7 +393,7 @@ def sector_market_map(sector: str) -> str:
         "(SEC EDGAR), messari_asset, amberdata_request, defillama_stablecoins, "
         "coingecko_markets. Compute all rubric scores with compute_scores. When "
         "the memo is complete, call render_report(sector, markdown_body) to emit "
-        "the Markdown + PDF deliverables.\n\n"
+        "the Word (.docx) + Markdown deliverables.\n\n"
         "Never estimate beyond disclosed data; if a window has no disclosed "
         "activity, say so explicitly.\n\n"
         "=== METHODOLOGY ===\n"

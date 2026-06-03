@@ -132,8 +132,9 @@ OUTPUT_STRUCTURE = """REQUIRED OUTPUT STRUCTURE (in this exact order)
    Every URL and every source-document filename used, listed in full.
 
 FINAL DELIVERABLES
-Produce the memo as Markdown AND PDF, both titled exactly
-"Standardized Sector Market Map <short_name>"."""
+Produce the memo as a Word document (.docx) and Markdown, both titled exactly
+"Standardized Sector Market Map <short_name>" (call render_report, whose
+default formats are ["markdown", "docx"]; add "pdf" if a PDF is also wanted)."""
 
 
 def _rubrics_block() -> str:

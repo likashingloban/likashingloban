@@ -17,7 +17,8 @@ Supported sectors:
 | `market-infrastructure` | Market Infrastructure |
 
 Every memo is titled exactly **`Standardized Sector Market Map <short-name>`**
-and written to both `.md` and `.pdf`.
+and written as a **Word document (`.docx`)** plus Markdown (`.md`). A `.pdf` is
+also available on request.
 
 ## Design
 
@@ -95,7 +96,8 @@ ready-to-run brief (methodology + skeleton) for a sector. A typical loop:
    `defillama_stablecoins`, `coingecko_markets`, `amberdata_*` — pull
    source-traceable numbers.
 5. `compute_scores(...)` — deterministic rubric bands and final score lines.
-6. `render_report(sector, markdown_body)` — writes the `.md` + `.pdf`.
+6. `render_report(sector, markdown_body)` — writes the `.docx` + `.md`
+   (pass `formats=["markdown","docx","pdf"]` to also emit a PDF).
 
 ### Tools
 
@@ -113,7 +115,7 @@ ready-to-run brief (methodology + skeleton) for a sector. A typical loop:
 | `amberdata_request` / `amberdata_spot_price` | Amberdata on-chain/market data |
 | `defillama_stablecoins` / `defillama_stablecoin_detail` | DefiLlama (free) |
 | `coingecko_markets` | CoinGecko (free) token market data |
-| `render_report` | Emit the Markdown + PDF deliverables |
+| `render_report` | Emit the Word (.docx) + Markdown deliverables (PDF optional) |
 | `server_status` | Credential availability + output dir |
 
 ### Methodology coverage
