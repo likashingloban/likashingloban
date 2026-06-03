@@ -25,6 +25,7 @@ from .pdf import render_markdown_to_pdf
 from .rubrics import ALL_RUBRICS, MarketOpportunity, ScoreCard, average
 from .skeleton import build_skeleton, report_basename, report_title
 from .sectors import SECTORS, get_sector, list_sector_keys
+from .windows import exit_windows, funding_windows
 from .sources import (
     amberdata,
     coingecko,
@@ -211,18 +212,31 @@ async def web_search(
     """Tavily web search.
 
     Set ``sector`` + ``restrict_to_sources=True`` to confine results to that
-    sector's curated source domains. Use ``recency_days`` (with ``news=True``)
-    to enforce the 12-month funding/exit windows.
+    sector's curated source domains. ``recency_days`` controls the recency
+    filter: leave it as ``None`` to default to the configured lookback window
+    (SECTOR_RESEARCH_LOOKBACK_MONTHS, default 2 months); pass ``0`` to disable
+    recency filtering for time-insensitive sources (e.g. market-size reports).
+    The recency filter is applied by Tavily on the news topic, so a window is
+    auto-promoted to ``news`` unless you explicitly searched general.
     """
     include = None
     if restrict_to_sources and sector:
         include = get_sector(sector).source_domains
+
+    if recency_days is None:
+        effective_days: int | None = config.lookback_days()
+    elif recency_days <= 0:
+        effective_days = None
+    else:
+        effective_days = recency_days
+
+    topic = "news" if (news or effective_days is not None) else "general"
     return await tavily.search(
         query,
         max_results=max_results,
         include_domains=include,
-        days=recency_days,
-        topic="news" if news else "general",
+        days=effective_days,
+        topic=topic,
     )
 
 
@@ -365,12 +379,19 @@ def render_report(
 @mcp.tool()
 def server_status() -> dict[str, Any]:
     """Report which API credentials are configured and the output directory."""
+    fw = funding_windows()
+    ew = exit_windows()
     return {
         "version": __import__("sector_research_mcp").__version__,
         "today": date.today().isoformat(),
         "output_dir": str(config.OUTPUT_DIR),
         "key_status": config.key_status(),
         "sectors": list_sector_keys(),
+        "lookback_months": config.LOOKBACK_MONTHS,
+        "windows": {
+            "funding": [w["range"] for w in fw],
+            "exit": [w["range"] for w in ew],
+        },
     }
 
 

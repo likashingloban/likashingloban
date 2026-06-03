@@ -11,6 +11,7 @@ from __future__ import annotations
 from datetime import date
 
 from .sectors import Sector
+from .windows import exit_windows, funding_windows
 
 TITLE_PREFIX = "Standardized Sector Market Map"
 
@@ -36,6 +37,8 @@ def report_basename(sector: Sector) -> str:
 def build_skeleton(sector: Sector, *, as_of: date | None = None) -> str:
     as_of = as_of or date.today()
     title = report_title(sector)
+    fw = funding_windows(as_of)  # [primary, comparison]
+    ew = exit_windows(as_of)  # [primary, comparison]
     lines = [
         f"# {title}",
         "",
@@ -54,12 +57,11 @@ def build_skeleton(sector: Sector, *, as_of: date | None = None) -> str:
         "",
         "## 1. Funding",
         "",
-        "### 1a. Last 12 months "
-        f"(window: {as_of.replace(year=as_of.year - 1).isoformat()} -> {as_of.isoformat()})",
+        f"### 1a. {fw[0]['label'].capitalize()} (window: {fw[0]['range']})",
         "",
         "_Headline:_ [aggregate disclosed funding, or \"No material funding rounds "
-        "were publicly disclosed within this period.\"]. _YoY change:_ [...]. "
-        "_Primary vs secondary:_ [...]. _Geography (US / EMEA / SEA / RoW):_ [...].",
+        "were publicly disclosed within this period.\"]. _Change vs prior equal-length "
+        "period:_ [...]. _Primary vs secondary:_ [...]. _Geography (US / EMEA / SEA / RoW):_ [...].",
         "",
         "| Company | Round size | Stage | Valuation | Equity/Debt mix | Date | Purpose |",
         "|---|---|---|---|---|---|---|",
@@ -67,12 +69,12 @@ def build_skeleton(sector: Sector, *, as_of: date | None = None) -> str:
         "",
         "Source: [plain-text URL per row, on its own line]",
         "",
-        "### 1b. Last 24 months "
-        f"(window: {as_of.replace(year=as_of.year - 2).isoformat()} -> {as_of.isoformat()})",
+        f"### 1b. {fw[1]['label'].capitalize()} (window: {fw[1]['range']})",
         "",
-        "_Headline / YoY / primary-secondary / geography:_ [...]. Recap table as above.",
+        "_Headline / change / primary-secondary / geography:_ [...]. Recap table as above.",
         "",
-        "**Funding Intensity Score: [X] / 5**  _(average rubric band over the last 3 years)_",
+        f"**Funding Intensity Score: [X] / 5**  _(average rubric band across the "
+        f"{fw[0]['months']}-month and {fw[1]['months']}-month windows)_",
         "",
         "---",
         "",
@@ -125,7 +127,7 @@ def build_skeleton(sector: Sector, *, as_of: date | None = None) -> str:
         "",
         "## 4. Exit Opportunities",
         "",
-        "### 4a. Last 12 months",
+        f"### 4a. {ew[0]['label'].capitalize()} (window: {ew[0]['range']})",
         "",
         "[If none: \"No material M&A or IPO activity occurred in this window.\"]",
         "",
@@ -141,16 +143,17 @@ def build_skeleton(sector: Sector, *, as_of: date | None = None) -> str:
         "# comps > $10B | Comp tickers | Source URL |",
         "|---|---|---|---|---|---|---|---|",
         "",
-        "### 4b. Last 3 years",
+        f"### 4b. {ew[1]['label'].capitalize()} (window: {ew[1]['range']})",
         "",
-        "[Repeat M&A and IPO tables for the 3-year window.]",
+        f"[Repeat M&A and IPO tables for the {ew[1]['months']}-month window.]",
         "",
         "### Public comparables (NYSE / NASDAQ / LSEG / ADX / HKEX / SSE)",
         "",
         "| Company | Ticker | Market Cap | P/E | Gross Margin | Net Margin | Growth Rate | Data date |",
         "|---|---|---|---|---|---|---|---|",
         "",
-        "**Exit Intensity Score = [X] / 5**  _(average of 12-month and 3-year bands)_",
+        f"**Exit Intensity Score = [X] / 5**  _(average of the {ew[0]['months']}-month "
+        f"and {ew[1]['months']}-month bands)_",
         "",
         "---",
         "",

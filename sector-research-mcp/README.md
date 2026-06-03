@@ -57,7 +57,22 @@ configuration.
 | `AMBERDATA_API_KEY` | `amberdata_*` | optional |
 | `SEC_EDGAR_USER_AGENT` | `sec_*` | recommended (SEC asks for contact) |
 | `COINGECKO_API_KEY` | `coingecko_markets` | optional (keyless tier works) |
+| `SECTOR_RESEARCH_LOOKBACK_MONTHS` | all windows + search recency | optional (**default 2 months**) |
 | `SECTOR_RESEARCH_OUTPUT_DIR` | `render_report` | optional (defaults to `./reports`) |
+
+### Analysis window
+
+The memo's time horizon is driven by a single setting,
+`SECTOR_RESEARCH_LOOKBACK_MONTHS` (**default 2**). Every window derives from it:
+
+- **Funding** — primary `N` months and a `2N`-month comparison.
+- **Exit Opportunities** — primary `N` months and a `3N`-month comparison.
+- **`web_search`** — recency filter defaults to the `N`-month window (pass
+  `recency_days=0` to disable for time-insensitive sources like market-size
+  reports).
+
+`server_status` reports the active window. Set `LOOKBACK_MONTHS=12` to restore
+the original annual (12-/24-month, 12-month/3-year) horizons.
 
 ## Run
 
@@ -149,9 +164,9 @@ ready-to-run brief (methodology + skeleton) for a sector. A typical loop:
 
 The standardized memo always produces, in order:
 
-1. **Funding** — 12- and 24-month windows; headline aggregate + YoY,
-   primary/secondary and geographic splits, a per-round table with per-row
-   source URLs; **Funding Intensity Score** (3-yr average band).
+1. **Funding** — `N`- and `2N`-month windows (default 2/4); headline aggregate
+   + period-over-period change, primary/secondary and geographic splits, a
+   per-round table with per-row source URLs; **Funding Intensity Score**.
 2. **Competitive Landscape** — clusters as company-per-column tables (Overview,
    Product & Services, Moat, Target Clients, Client Key Metrics, Key Risks,
    References) plus product×geography sub-segmentation with aggregate funding;
@@ -159,9 +174,9 @@ The standardized memo always produces, in order:
 3. **Market Opportunity** — current annual revenue, gross margin, CAGR, each
    with source + tier; **Market Size / Profitability / Growth Scores** and the
    composite **Market Opportunity Score**.
-4. **Exit Opportunities** — 12-month and 3-year M&A + IPO tables, public
-   comparables across NYSE/NASDAQ/LSEG/ADX/HKEX/SSE; **Exit Intensity Score**
-   (average of both windows).
+4. **Exit Opportunities** — `N`- and `3N`-month M&A + IPO tables (default 2/6),
+   public comparables across NYSE/NASDAQ/LSEG/ADX/HKEX/SSE; **Exit Intensity
+   Score** (average of both windows).
 5. **Legal & Regulatory** — US/EMEA/SEA matrix (frameworks, developments,
    lawsuits, patents) + favored use-cases by jurisdiction.
 6. **Tech Stack** — open vs closed source, dominant stablecoins/protocols/

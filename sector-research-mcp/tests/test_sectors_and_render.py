@@ -70,11 +70,14 @@ def test_skeleton_has_required_sections(key):
 
 
 @pytest.mark.parametrize("key", list(SECTORS))
-def test_instructions_mention_windows_and_rubrics(key):
+def test_instructions_reflect_lookback_window(key):
+    # Default lookback is 2 months -> primary 2m, funding compare 4m, exit 6m.
     text = build_instructions(get_sector(key))
-    assert "last twelve months" in text.lower()
-    assert "24 month" in text.lower() or "24-month" in text.lower()
+    assert "last 2 months" in text
+    assert "4-month" in text  # funding comparison window (2N)
+    assert "6 months" in text  # exit comparison window (3N)
     assert "Funding Intensity Rubric" in text
+    assert "last twelve months" not in text.lower()
 
 
 def test_render_pdf(tmp_path: Path):

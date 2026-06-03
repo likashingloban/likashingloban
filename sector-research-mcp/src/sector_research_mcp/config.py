@@ -52,6 +52,16 @@ OUTPUT_DIR = Path(
 # Network defaults.
 HTTP_TIMEOUT_SECONDS = float(os.getenv("SECTOR_RESEARCH_HTTP_TIMEOUT", "30"))
 
+# Core analysis window. Every window in the methodology (funding, exits) is
+# derived from this, so the whole memo can be retargeted by changing one value.
+# Defaults to 2 months.
+LOOKBACK_MONTHS = max(1, int(os.getenv("SECTOR_RESEARCH_LOOKBACK_MONTHS", "2")))
+
+
+def lookback_days() -> int:
+    """Approximate the lookback window in days (for search recency filters)."""
+    return LOOKBACK_MONTHS * 31
+
 
 def key_status() -> dict[str, bool]:
     """Boolean availability map for each configured credential (no secrets)."""

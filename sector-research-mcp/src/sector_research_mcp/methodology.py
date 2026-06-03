@@ -7,6 +7,7 @@ the calling model always works from the same rubric-anchored brief.
 
 from __future__ import annotations
 
+from . import config
 from .rubrics import ALL_RUBRICS
 from .sectors import Sector
 
@@ -15,11 +16,15 @@ Provide a structured, directly comparable sector-level view across verticals
 using consistent definitions, time horizons, scoring rubrics, and a
 data-source hierarchy."""
 
-TIMEFRAME = """CORE TIMEFRAME REQUIREMENTS
-- All analysis reflects the last twelve months, including the funding window
-  and exit window, unless a section specifies otherwise (Funding also runs a
-  24-month view; Exit Opportunities also runs a 3-year view).
-- Do not use transactions outside the stated window.
+
+def timeframe_text() -> str:
+    n = config.LOOKBACK_MONTHS
+    return f"""CORE TIMEFRAME REQUIREMENTS
+- All analysis reflects the last {n} months, including the funding window and
+  exit window, unless a section specifies otherwise (Funding also runs a
+  {2 * n}-month comparison view; Exit Opportunities also runs a {3 * n}-month view).
+- Use ONLY data and transactions dated within the stated window. Do not use
+  anything older than the last {n} months for the primary analysis.
 - If no material funding or exits were publicly disclosed within a window,
   state that explicitly. Do NOT estimate or extrapolate.
 - Today's date anchors every window; state the exact window dates you used."""
@@ -50,25 +55,47 @@ Additional free APIs worth adding: FRED (macro), Frankfurter/ECB (FX),
   Financial Modeling Prep + Alpha Vantage (free tiers, equity fundamentals),
   rwa.xyz (tokenized assets), GLEIF LEI (entity resolution)."""
 
-OUTPUT_STRUCTURE = """REQUIRED OUTPUT STRUCTURE (in this exact order)
-
-1. FUNDING
-   Run TWO analyses with recaps: last 12 months AND last 24 months. State each
-   window explicitly.
+def _funding_section() -> str:
+    n = config.LOOKBACK_MONTHS
+    return f"""1. FUNDING
+   Run TWO analyses with recaps: last {n} months AND last {2 * n} months. State
+   each window explicitly.
    - Headline funding: aggregate figure, or state "No material funding rounds
      were publicly disclosed within this period." if you cannot find disclosed
-     rounds summing above $100M combined. Give YoY change vs the prior year.
-     Split headline into primary vs secondary if possible. Split by geography
-     (US, EMEA, SEA, Rest of the World) if possible.
+     rounds summing above $100M combined. Give the change vs the prior equal-
+     length period. Split headline into primary vs secondary if possible. Split
+     by geography (US, EMEA, SEA, Rest of the World) if possible.
    - If funding exists, recap in a table: Company | Round size | Stage |
      Valuation (if disclosed) | Equity/Debt mix flag | Date | Brief purpose,
      with the Source URL on its own line beneath each row.
    - Do not estimate funding ranges without disclosed rounds.
    - Apply the Funding Intensity Rubric and end with:
-     "Funding Intensity Score: X / 5" where X = average rubric band over the
-     last 3 years.
+     "Funding Intensity Score: X / 5" where X = the average rubric band across
+     the windows analyzed (primary {n}-month and {2 * n}-month comparison)."""
 
-2. COMPETITIVE LANDSCAPE
+
+def _exit_section() -> str:
+    n = config.LOOKBACK_MONTHS
+    return f"""4. EXIT OPPORTUNITIES
+   State windows: last {n} months AND last {3 * n} months; run the analysis for both.
+   - If no material M&A/IPO, state it explicitly.
+   - M&A table: Target | Acquirer | Deal value | Deal date | Latest known
+     target valuation prior to M&A | Date of that valuation | Source URL.
+   - IPO table: Target | IPO indicated price range | first-day close price |
+     most recent share price | IPO date | # of public comparables with market
+     cap > $10B as of latest date | tickers of those comparables | Source URL.
+   - Only strictly in-sector exits (not partially related).
+   - Separately, public comparables on NYSE/NASDAQ/LSEG/ADX/HKEX/SSE:
+     Company | Ticker | Market Cap | P/E | Gross Margin | Net Margin |
+     Growth Rate | Data date.
+   - Apply Exit Intensity Rubric to each window; the printed score is the
+     average of the two windows' bands:
+     "Exit Intensity Score = X / 5"."""
+
+
+_STRUCTURE_INTRO = "REQUIRED OUTPUT STRUCTURE (in this exact order)"
+
+_STRUCTURE_MIDDLE = """2. COMPETITIVE LANDSCAPE
    - 2-6 sentence structural summary derived from the tables below.
    - Group every discovered company into clusters by product similarity.
    - For each cluster, ONE table: columns = one per company; rows =
@@ -98,25 +125,10 @@ OUTPUT_STRUCTURE = """REQUIRED OUTPUT STRUCTURE (in this exact order)
       timeframe; cite source (same Tier-1 source if possible). Apply Growth
       Rubric -> "Growth Score: X / 5".
    End with: "Market Opportunity Score = (Market Size + Profitability + Growth)
-   / 3".
+   / 3"."""
 
-4. EXIT OPPORTUNITIES
-   State windows: last 12 months AND last 3 years; run the analysis for both.
-   - If no material M&A/IPO, state it explicitly.
-   - M&A table: Target | Acquirer | Deal value | Deal date | Latest known
-     target valuation prior to M&A | Date of that valuation | Source URL.
-   - IPO table: Target | IPO indicated price range | first-day close price |
-     most recent share price | IPO date | # of public comparables with market
-     cap > $10B as of latest date | tickers of those comparables | Source URL.
-   - Only strictly in-sector exits (not partially related).
-   - Separately, public comparables on NYSE/NASDAQ/LSEG/ADX/HKEX/SSE:
-     Company | Ticker | Market Cap | P/E | Gross Margin | Net Margin |
-     Growth Rate | Data date.
-   - Apply Exit Intensity Rubric to each window; the printed score is the
-     average of the 12-month and 3-year bands:
-     "Exit Intensity Score = X / 5".
 
-5. LEGAL & REGULATORY ANALYSIS
+_STRUCTURE_TAIL = """5. LEGAL & REGULATORY ANALYSIS
    One table: columns = US, EMEA, SEA; rows = (1) relevant regulations/
    frameworks/licenses/charters; (2) latest developments (updates, pilots,
    entities that filed/were granted a license/charter); (3) recent lawsuits;
@@ -135,6 +147,19 @@ FINAL DELIVERABLES
 Produce the memo as a Word document (.docx) and Markdown, both titled exactly
 "Standardized Sector Market Map <short_name>" (call render_report, whose
 default formats are ["markdown", "docx"]; add "pdf" if a PDF is also wanted)."""
+
+
+def output_structure_text() -> str:
+    """Assemble the full output-structure brief with window-derived sections."""
+    return "\n\n".join(
+        [
+            _STRUCTURE_INTRO,
+            _funding_section(),
+            _STRUCTURE_MIDDLE,
+            _exit_section(),
+            _STRUCTURE_TAIL,
+        ]
+    )
 
 
 def _rubrics_block() -> str:
@@ -168,10 +193,10 @@ Specialized data sources to prioritize for this sector: {apis}"""
         [
             OBJECTIVE,
             sector_block,
-            TIMEFRAME,
+            timeframe_text(),
             GENERAL_REQUIREMENTS,
             DATA_SOURCE_HIERARCHY,
             _rubrics_block(),
-            OUTPUT_STRUCTURE,
+            output_structure_text(),
         ]
     )
