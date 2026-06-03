@@ -67,8 +67,22 @@ python -m sector_research_mcp        # stdio transport
 
 ### Register with Claude Code
 
-With a `.env` in the project root, no `-e` flags are needed — just point at the
-venv's Python (absolute path is the reliable form):
+**Option A — zero-config, travels with the repo (recommended).** A
+project-scoped [`.mcp.json`](.mcp.json) is committed in this directory. Install
+the package globally so the `sector-research-mcp` console script is on `PATH`,
+then just launch `claude` from this directory and approve the server:
+
+```bash
+pipx install .          # or: uv tool install .
+claude                  # run from sector-research-mcp/; approve "sector-research"
+```
+
+Because `.mcp.json` references the `sector-research-mcp` command (not a
+machine-specific path), it works unchanged on any machine where the package is
+installed globally. Keys come from the project-root `.env`.
+
+**Option B — point at a venv explicitly** (no global install). With a `.env` in
+the project root, no `-e` flags are needed:
 
 ```bash
 claude mcp add sector-research -- "$(pwd)/.venv/bin/python" -m sector_research_mcp
