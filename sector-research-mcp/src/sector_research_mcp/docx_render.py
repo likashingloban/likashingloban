@@ -21,6 +21,15 @@ def _render_htmldocx(markdown_text: str, out_path: Path) -> bool:
         from htmldocx import HtmlToDocx
     except ImportError:
         return False
+    # htmldocx emits a spurious BeautifulSoup warning on bare-URL lines.
+    try:
+        import warnings
+
+        from bs4 import MarkupResemblesLocatorWarning
+
+        warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
+    except Exception:  # noqa: BLE001 - warning suppression is best-effort
+        pass
     html = md.markdown(
         markdown_text,
         extensions=["tables", "fenced_code", "sane_lists"],
