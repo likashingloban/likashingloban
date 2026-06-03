@@ -105,12 +105,48 @@ def test_render_docx(tmp_path: Path):
     assert len(doc.tables) >= 1
 
 
-def test_render_report_defaults_to_docx(tmp_path: Path, monkeypatch):
+def test_render_report_defaults_to_docx_only(tmp_path: Path, monkeypatch):
     import sector_research_mcp.config as cfg
     from sector_research_mcp.server import render_report
 
     monkeypatch.setattr(cfg, "OUTPUT_DIR", tmp_path)
     res = render_report("stablecoin", "## 1. Funding\n\nNo material rounds.\n")
-    assert set(res["outputs"]) == {"markdown", "docx"}
+    # Word only by default — no PDF, no Markdown.
+    assert set(res["outputs"]) == {"docx"}
     assert Path(res["outputs"]["docx"]["path"]).exists()
     assert res["title"] == "Standardized Sector Market Map Stablecoins & Payment Rails"
+
+
+def test_render_reports_batch_all_sectors(tmp_path: Path, monkeypatch):
+    import sector_research_mcp.config as cfg
+    from sector_research_mcp.sectors import list_sector_keys
+    from sector_research_mcp.server import render_reports
+
+    monkeypatch.setattr(cfg, "OUTPUT_DIR", tmp_path)
+    reports = [
+        {"sector": k, "markdown_body": "## 1. Funding\n\nNo material rounds.\n"}
+        for k in list_sector_keys()
+    ]
+    res = render_reports(reports)
+    assert res["rendered"] == 4 and res["failed"] == 0
+    for r in res["results"]:
+        assert set(r["outputs"]) == {"docx"}
+        assert Path(r["outputs"]["docx"]["path"]).exists()
+    # all four distinct .docx files written
+    assert len(list(tmp_path.glob("*.docx"))) == 4
+
+
+def test_render_reports_reports_per_item_errors(tmp_path: Path, monkeypatch):
+    import sector_research_mcp.config as cfg
+    from sector_research_mcp.server import render_reports
+
+    monkeypatch.setattr(cfg, "OUTPUT_DIR", tmp_path)
+    res = render_reports(
+        [
+            {"sector": "stablecoin", "markdown_body": "## x\n"},
+            {"sector": "not-a-sector", "markdown_body": "## x\n"},
+            {"sector": "ai-consumer"},  # missing body
+        ]
+    )
+    assert res["rendered"] == 1
+    assert res["failed"] == 2

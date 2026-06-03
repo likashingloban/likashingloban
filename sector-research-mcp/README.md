@@ -17,8 +17,9 @@ Supported sectors:
 | `market-infrastructure` | Market Infrastructure |
 
 Every memo is titled exactly **`Standardized Sector Market Map <short-name>`**
-and written as a **Word document (`.docx`)** plus Markdown (`.md`). A `.pdf` is
-also available on request.
+and written as a **Word document (`.docx`)** — Word is the only standard output
+(no PDF). Markdown/PDF remain available as explicit opt-ins via the `formats`
+argument. You can generate **all sectors in one go** with `render_reports`.
 
 ## Design
 
@@ -138,8 +139,10 @@ ready-to-run brief (methodology + skeleton) for a sector. A typical loop:
    `defillama_stablecoins`, `coingecko_markets`, `amberdata_*` — pull
    source-traceable numbers.
 5. `compute_scores(...)` — deterministic rubric bands and final score lines.
-6. `render_report(sector, markdown_body)` — writes the `.docx` + `.md`
-   (pass `formats=["markdown","docx","pdf"]` to also emit a PDF).
+6. `render_report(sector, markdown_body)` — writes the `.docx` (Word only).
+   For every sector at once, call
+   `render_reports([{ "sector": …, "markdown_body": … }, …])`. Pass
+   `formats=["docx","markdown","pdf"]` to opt into Markdown/PDF.
 
 ### Tools
 
@@ -150,6 +153,7 @@ ready-to-run brief (methodology + skeleton) for a sector. A typical loop:
 | `get_research_instructions` | Full standardized methodology for a sector |
 | `get_report_skeleton` | Fixed-order Markdown skeleton with score lines |
 | `get_rubrics` | All scoring rubrics verbatim |
+| `prepare_all_sectors` | Methodology + skeleton for **every** sector (start an all-in-one-go run) |
 | `compute_scores` | Deterministic Funding / Competitive / Market Opportunity / Exit scores |
 | `web_search` / `extract_url` | Tavily discovery + content extraction |
 | `sec_recent_filings` / `sec_company_concept` / `sec_full_text_search` | SEC EDGAR (free) |
@@ -157,7 +161,8 @@ ready-to-run brief (methodology + skeleton) for a sector. A typical loop:
 | `amberdata_request` / `amberdata_spot_price` | Amberdata on-chain/market data |
 | `defillama_stablecoins` / `defillama_stablecoin_detail` | DefiLlama (free) |
 | `coingecko_markets` | CoinGecko (free) token market data |
-| `render_report` | Emit the Word (.docx) + Markdown deliverables (PDF optional) |
+| `render_report` | Emit one sector's Word (.docx) deliverable (Markdown/PDF opt-in) |
+| `render_reports` | Emit **all sectors in one go** (list of {sector, markdown_body}) |
 | `server_status` | Credential availability + output dir |
 
 ### Methodology coverage

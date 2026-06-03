@@ -43,8 +43,10 @@ mcp = FastMCP(
         "Infrastructure. Start with get_research_instructions(sector) and "
         "get_report_skeleton(sector); gather data with web_search/extract_url and "
         "the SEC/Messari/Amberdata/DefiLlama/CoinGecko tools; compute rubric "
-        "scores with compute_scores; finish by calling render_report to emit the "
-        "Word (.docx) + Markdown deliverables. Never estimate beyond disclosed data."
+        "scores with compute_scores; finish by calling render_report (one sector) "
+        "or render_reports (all sectors in one go) to emit the Word (.docx) "
+        "deliverables. Output is Word only (no PDF). Never estimate beyond "
+        "disclosed data."
     ),
 )
 
@@ -118,6 +120,27 @@ def get_report_skeleton(sector: str) -> dict[str, Any]:
         "basename": report_basename(s),
         "skeleton_markdown": build_skeleton(s),
     }
+
+
+@mcp.tool()
+def prepare_all_sectors() -> dict[str, Any]:
+    """Return methodology + skeleton for EVERY sector — set up an all-in-one-go run.
+
+    Use this once at the start to drive a full multi-sector pass: it returns,
+    per sector, the standardized instructions and the Markdown skeleton to fill.
+    After authoring each memo, emit the whole set with render_reports.
+    """
+    sectors = []
+    for s in SECTORS.values():
+        sectors.append(
+            {
+                "sector": s.key,
+                "title": report_title(s),
+                "instructions": build_instructions(s),
+                "skeleton_markdown": build_skeleton(s),
+            }
+        )
+    return {"count": len(sectors), "sectors": sectors}
 
 
 @mcp.tool()
@@ -318,46 +341,34 @@ async def coingecko_markets(ids: list[str]) -> dict[str, Any]:
 # Rendering / status
 # --------------------------------------------------------------------------
 
-@mcp.tool()
-def render_report(
-    sector: str,
-    markdown_body: str,
-    formats: list[str] | None = None,
-) -> dict[str, Any]:
-    """Write the completed memo and return the paths produced.
-
-    ``formats`` selects deliverables from {"markdown", "docx", "pdf"} and
-    defaults to ["markdown", "docx"] — Word is the primary document output.
-    The title line is enforced to exactly
-    "Standardized Sector Market Map <short_name>"; if ``markdown_body`` does not
-    already begin with that H1, it is prepended.
-    """
+def _render_one(sector: str, markdown_body: str, formats: list[str]) -> dict[str, Any]:
+    """Render a single memo to the requested formats. Shared by the tools below."""
     s = get_sector(sector)
     title = report_title(s)
     body = markdown_body.strip()
     if not body.startswith(f"# {title}"):
         body = f"# {title}\n\n{body}"
 
-    wanted = [f.lower() for f in (formats or ["markdown", "docx"])]
-    unknown = [f for f in wanted if f not in {"markdown", "docx", "pdf"}]
+    unknown = [f for f in formats if f not in {"markdown", "docx", "pdf"}]
     if unknown:
-        return {"ok": False, "error": f"Unknown formats: {unknown}"}
+        return {"ok": False, "sector": s.key, "error": f"Unknown formats: {unknown}"}
 
     config.OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     base = report_basename(s)
     result: dict[str, Any] = {
+        "ok": True,
         "sector": s.key,
         "title": title,
         "bytes_markdown": len(body.encode("utf-8")),
         "outputs": {},
     }
 
-    if "markdown" in wanted:
+    if "markdown" in formats:
         md_path = config.OUTPUT_DIR / f"{base}.md"
         md_path.write_text(body, encoding="utf-8")
         result["outputs"]["markdown"] = {"path": str(md_path)}
 
-    if "docx" in wanted:
+    if "docx" in formats:
         docx_info = render_markdown_to_docx(body, config.OUTPUT_DIR / f"{base}.docx")
         result["outputs"]["docx"] = {
             "path": docx_info["path"],
@@ -365,7 +376,7 @@ def render_report(
             "note": docx_info.get("note"),
         }
 
-    if "pdf" in wanted:
+    if "pdf" in formats:
         pdf_info = render_markdown_to_pdf(body, config.OUTPUT_DIR / f"{base}.pdf")
         result["outputs"]["pdf"] = {
             "path": pdf_info["path"],
@@ -374,6 +385,56 @@ def render_report(
         }
 
     return result
+
+
+@mcp.tool()
+def render_report(
+    sector: str,
+    markdown_body: str,
+    formats: list[str] | None = None,
+) -> dict[str, Any]:
+    """Write one completed memo and return the paths produced.
+
+    ``formats`` selects deliverables from {"docx", "markdown", "pdf"} and
+    defaults to ["docx"] — Word is the only standard output. (Markdown/PDF
+    remain available as explicit opt-ins.) The title line is enforced to exactly
+    "Standardized Sector Market Map <short_name>"; if ``markdown_body`` does not
+    already begin with that H1, it is prepended.
+    """
+    return _render_one(sector, markdown_body, [f.lower() for f in (formats or ["docx"])])
+
+
+@mcp.tool()
+def render_reports(
+    reports: list[dict[str, str]],
+    formats: list[str] | None = None,
+) -> dict[str, Any]:
+    """Render several sector memos in one call — all sectors in one go.
+
+    ``reports`` is a list of {"sector": <key>, "markdown_body": <memo>} items
+    (typically one per sector). Each is written to Word (.docx) by default.
+    Returns a per-report result plus a summary. Use this after authoring every
+    sector's memo to emit the whole set at once.
+    """
+    fmts = [f.lower() for f in (formats or ["docx"])]
+    results = []
+    for item in reports:
+        sector = (item.get("sector") or "").strip()
+        body = item.get("markdown_body") or ""
+        if not sector or not body:
+            results.append({"ok": False, "error": "Each report needs 'sector' and 'markdown_body'.", "item": item.get("sector")})
+            continue
+        try:
+            results.append(_render_one(sector, body, fmts))
+        except Exception as exc:  # noqa: BLE001 - report per-item failure, keep going
+            results.append({"ok": False, "sector": sector, "error": str(exc)})
+    ok_count = sum(1 for r in results if r.get("ok"))
+    return {
+        "rendered": ok_count,
+        "failed": len(results) - ok_count,
+        "output_dir": str(config.OUTPUT_DIR),
+        "results": results,
+    }
 
 
 @mcp.tool()
@@ -414,13 +475,35 @@ def sector_market_map(sector: str) -> str:
         "(SEC EDGAR), messari_asset, amberdata_request, defillama_stablecoins, "
         "coingecko_markets. Compute all rubric scores with compute_scores. When "
         "the memo is complete, call render_report(sector, markdown_body) to emit "
-        "the Word (.docx) + Markdown deliverables.\n\n"
+        "the Word (.docx) deliverable.\n\n"
         "Never estimate beyond disclosed data; if a window has no disclosed "
         "activity, say so explicitly.\n\n"
         "=== METHODOLOGY ===\n"
         f"{instructions}\n\n"
         "=== FILL THIS SKELETON ===\n"
         f"{skeleton}"
+    )
+
+
+@mcp.prompt(title="All Sectors Market Map")
+def all_sectors_market_map() -> str:
+    """A brief that drives memos for ALL sectors in one go, rendered together."""
+    keys = ", ".join(list_sector_keys())
+    return (
+        "Produce a standardized sector market-map memo for EVERY sector in one "
+        f"go: {keys}.\n\n"
+        "1. Call prepare_all_sectors() to get the methodology + skeleton for each "
+        "sector.\n"
+        "2. For each sector, gather source-traceable data with the server tools "
+        "(web_search / extract_url, sec_*, messari_asset, defillama_*, "
+        "coingecko_markets) and compute rubric scores with compute_scores. Keep "
+        "verticals from double-counting (respect each sector's scope guardrails).\n"
+        "3. When all memos are authored, call render_reports with one "
+        "{sector, markdown_body} item per sector to emit every Word (.docx) "
+        "deliverable at once.\n\n"
+        "Never estimate beyond disclosed data; if a window has no disclosed "
+        "activity, state that explicitly. Each memo's title must be exactly "
+        '"Standardized Sector Market Map <short-name>".'
     )
 
 

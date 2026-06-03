@@ -144,9 +144,10 @@ _STRUCTURE_TAIL = """5. LEGAL & REGULATORY ANALYSIS
    Every URL and every source-document filename used, listed in full.
 
 FINAL DELIVERABLES
-Produce the memo as a Word document (.docx) and Markdown, both titled exactly
-"Standardized Sector Market Map <short_name>" (call render_report, whose
-default formats are ["markdown", "docx"]; add "pdf" if a PDF is also wanted)."""
+Produce the memo as a Word document (.docx), titled exactly
+"Standardized Sector Market Map <short_name>". Output is Word only (no PDF).
+For one sector call render_report(sector, markdown_body); for all sectors in
+one go call render_reports([{sector, markdown_body}, ...])."""
 
 
 def output_structure_text() -> str:
