@@ -8,9 +8,19 @@ version = "0.1.0"
 description = "MCP server for generating standardized sector market-research memos (Stablecoins & Payment Rails, AI Infrastructure, AI Consumer, Market Infrastructure)."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = { file = "LICENSE" }
 authors = [{ name = "likashingloban" }]
 keywords = ["mcp", "market-research", "venture-capital", "stablecoins", "ai-infrastructure"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial :: Investment",
+]
 
 dependencies = [
     "mcp>=1.2.0",
@@ -28,6 +38,10 @@ dev = ["pytest>=8.0"]
 
 [project.scripts]
 sector-research-mcp = "sector_research_mcp.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/likashingloban/likashingloban/tree/main/sector-research-mcp"
+Repository = "https://github.com/likashingloban/likashingloban"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/sector_research_mcp"]

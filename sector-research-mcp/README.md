@@ -36,11 +36,25 @@ free-form arithmetic) while leaving judgment to the model.
 
 ## Install
 
+**From a built distribution (recommended for use).** Build once, then install
+the wheel anywhere:
+
 ```bash
 cd sector-research-mcp
 python -m venv .venv && . .venv/bin/activate
-pip install -e .          # or: pip install -r requirements.txt
+pip install build && python -m build         # produces dist/*.whl and dist/*.tar.gz
+pip install dist/sector_research_mcp-0.1.0-py3-none-any.whl
 ```
+
+Or install straight from a checkout / Git, or editable for development:
+
+```bash
+pip install .                                 # from the project directory
+pip install "git+https://github.com/likashingloban/likashingloban.git#subdirectory=sector-research-mcp"
+pip install -e ".[dev]"                       # editable + test deps
+```
+
+Either way you get the `sector-research-mcp` console script on `PATH`.
 
 ## Configure
 
