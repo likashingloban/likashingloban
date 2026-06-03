@@ -9,6 +9,23 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+# Load a local .env (if present) before reading any variables, so a project
+# .env file "just works" without exporting vars or passing -e flags. Real
+# environment variables always take precedence (override=False). Missing
+# python-dotenv or missing .env is a no-op.
+try:
+    from dotenv import find_dotenv, load_dotenv
+
+    _dotenv = find_dotenv(usecwd=True)
+    if not _dotenv:
+        # Fall back to a .env sitting at the package/project root.
+        _candidate = Path(__file__).resolve().parents[2] / ".env"
+        _dotenv = str(_candidate) if _candidate.exists() else ""
+    if _dotenv:
+        load_dotenv(_dotenv, override=False)
+except ImportError:  # python-dotenv not installed — rely on the real environment
+    pass
+
 
 def _clean(value: str | None) -> str | None:
     if value is None:

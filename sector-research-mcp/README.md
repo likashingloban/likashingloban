@@ -43,10 +43,12 @@ pip install -e .          # or: pip install -r requirements.txt
 
 ## Configure
 
-Copy `.env.example` to `.env` and fill in what you have. **All keys are
-optional** — a tool whose key is missing returns a structured error instead of
-crashing, and the keyless sources (SEC EDGAR, DefiLlama, CoinGecko public tier)
-work with no configuration.
+Copy `.env.example` to `.env` and fill in what you have — the server
+auto-loads a `.env` from the project root at startup (real environment
+variables take precedence). **All keys are optional** — a tool whose key is
+missing returns a structured error instead of crashing, and the keyless
+sources (SEC EDGAR, DefiLlama, CoinGecko public tier) work with no
+configuration.
 
 | Variable | Used by | Required? |
 |---|---|---|
@@ -65,8 +67,19 @@ python -m sector_research_mcp        # stdio transport
 
 ### Register with Claude Code
 
+With a `.env` in the project root, no `-e` flags are needed — just point at the
+venv's Python (absolute path is the reliable form):
+
 ```bash
-claude mcp add sector-research -- python -m sector_research_mcp
+claude mcp add sector-research -- "$(pwd)/.venv/bin/python" -m sector_research_mcp
+```
+
+Or pass keys inline instead of using a `.env`:
+
+```bash
+claude mcp add sector-research \
+  -e TAVILY_API_KEY=tvly-... -e SEC_EDGAR_USER_AGENT="you@example.com" \
+  -- "$(pwd)/.venv/bin/python" -m sector_research_mcp
 ```
 
 ### Register with Claude Desktop (`claude_desktop_config.json`)
