@@ -1,0 +1,34 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sector-research-mcp"
+version = "0.1.0"
+description = "MCP server for generating standardized sector market-research memos (Stablecoins & Payment Rails, AI Infrastructure, AI Consumer, Market Infrastructure)."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "likashingloban" }]
+keywords = ["mcp", "market-research", "venture-capital", "stablecoins", "ai-infrastructure"]
+
+dependencies = [
+    "mcp>=1.2.0",
+    "httpx>=0.27",
+    "markdown>=3.5",
+    "xhtml2pdf>=0.2.11",
+    "fpdf2>=2.7",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+sector-research-mcp = "sector_research_mcp.__main__:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/sector_research_mcp"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
