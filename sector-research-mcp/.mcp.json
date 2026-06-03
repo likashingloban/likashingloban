@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "sector-research": {
+      "command": "sector-research-mcp",
+      "args": [],
+      "env": {}
+    }
+  }
+}
