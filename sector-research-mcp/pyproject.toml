@@ -29,12 +29,13 @@ dependencies = [
     "markdown>=3.5",
     "python-docx>=1.1",
     "htmldocx>=0.0.6",
-    "xhtml2pdf>=0.2.11",
-    "fpdf2>=2.7",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+# Optional PDF rendering. Word (.docx) is the standard output; install this
+# extra only if you also want render_report(..., formats=[..., "pdf"]).
+pdf = ["xhtml2pdf>=0.2.11", "fpdf2>=2.7"]
 
 [project.scripts]
 sector-research-mcp = "sector_research_mcp.__main__:main"

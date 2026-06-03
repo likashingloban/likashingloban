@@ -18,8 +18,9 @@ Supported sectors:
 
 Every memo is titled exactly **`Standardized Sector Market Map <short-name>`**
 and written as a **Word document (`.docx`)** — Word is the only standard output
-(no PDF). Markdown/PDF remain available as explicit opt-ins via the `formats`
-argument. You can generate **all sectors in one go** with `render_reports`.
+(no PDF). Markdown is an opt-in via the `formats` argument; PDF additionally
+requires the `[pdf]` extra. You can generate **all sectors in one go** with
+`render_reports`.
 
 ## Design
 
@@ -55,6 +56,16 @@ pip install -e ".[dev]"                       # editable + test deps
 ```
 
 Either way you get the `sector-research-mcp` console script on `PATH`.
+
+The core install is Word-only and dependency-light. **PDF output is an optional
+extra** (it pulls `xhtml2pdf`/`fpdf2`), installed separately:
+
+```bash
+pip install "sector-research-mcp[pdf]"
+```
+
+Installing straight into a system/global Python is supported (the core deps do
+not need to replace any OS-managed packages).
 
 ## Configure
 

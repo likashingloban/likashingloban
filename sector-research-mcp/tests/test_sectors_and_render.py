@@ -81,6 +81,15 @@ def test_instructions_reflect_lookback_window(key):
 
 
 def test_render_pdf(tmp_path: Path):
+    # PDF is an optional extra ("sector-research-mcp[pdf]"); skip if not installed.
+    import importlib.util
+
+    if not (
+        importlib.util.find_spec("xhtml2pdf") or importlib.util.find_spec("fpdf")
+    ):
+        import pytest
+
+        pytest.skip("PDF extra not installed")
     s = get_sector("stablecoin-payments")
     md = skeleton.build_skeleton(s)
     out = tmp_path / "memo.pdf"
